@@ -8,14 +8,14 @@ async def main(targets):
 
     loop = asyncio.get_running_loop()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
- 
+
     def reader():
         data,addr = sock.recvfrom(4096)
         if len(data) < 4:
             return
         #print(data)
 
-        if data[0:2] != b'\x06\x00':
+        if data[:2] != b'\x06\x00':
             return
 
         if bytes([data[3]]) == b'\x86':
@@ -35,11 +35,7 @@ async def main(targets):
         datalen = data[11]
         amt_info = data[12:12+datalen]
         amt_version = '{}.{}'.format(amt_info[6] >> 4, amt_info[6] & 0x0f)
-        if amt_info[4] == 0:
-            amt_provisioned = "off"
-        else:
-            amt_provisioned = "on "
-
+        amt_provisioned = "off" if amt_info[4] == 0 else "on "
 #9.5
 #00000157000095000020000000000000
 # 9.5 provisioned
@@ -50,13 +46,13 @@ async def main(targets):
 #000001570000b8000020000000000000
 
         print('[{}] {} : version {}'.format(amt_provisioned, addr[0], amt_version))
-    
+
     loop.add_reader(sock, reader)
     probe = bytes(b'\x06\x00\x00\x06' + b'\x00\x00\x11\xbe\x80\x00\x00\x00')
-    
+
     if '/' in targets:
         ip_generator = ipaddress.IPv4Network(targets, strict=False)
-    
+
         for ip in ip_generator.hosts():
             sock.sendto(probe, (str(ip), 623))
     else:

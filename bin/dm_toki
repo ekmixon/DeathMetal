@@ -127,15 +127,25 @@ class SessionData():
         readbfr  = p[9]  << 8 | p[8]
         writebfr = p[11] << 8 | p[10]
         proto    = p[13]
-        
+
         iana = p[20] << 8 | p[19]
         iana = iana  << 8 | p[18]
         iana = iana  << 8 | p[17]
-        
+
         length = p[21]
 
-        rv = cls(major, minor, fwmajor, fwminor, readbfr, writebfr, proto, iana, length, 0)
-        return(rv)
+        return cls(
+            major,
+            minor,
+            fwmajor,
+            fwminor,
+            readbfr,
+            writebfr,
+            proto,
+            iana,
+            length,
+            0,
+        )
 
 # Abstracts sending certain kinds of commands to the socket
 # Also, processes incoming packets and sends relevant data to callbacks
@@ -181,7 +191,7 @@ class IderProto():
 
 class SCSI():
     def __init__(self, isopath):
-        self._scsistate = [False for x in range(0, 10)]
+        self._scsistate = [False for _ in range(10)]
         self._sense_error = False
         self._sense = 0
         self._iso = open(isopath, 'rb')
@@ -213,19 +223,16 @@ class SCSI():
 
     def on_testunitready(self, dev, data, send):
         print('on_testunitready')
-        if True:
         #if self._scsistate[8] and not self._scsistate[2]:
-            print('gonna say the drive is ready!')
-            resp = bytearray(31-8)
-            if self._sense_error == False:
-                resp[12] = 0xc5 # no error
-                resp[14] = 0x03
-                resp[18] = 0xb0
-                resp[19] = 0x50
-   
-            send(IDER_SCSI_SENSE, resp, complete=True)
-        else:
-            raise Exception('scsi', 'is the unit ready')
+        print('gonna say the drive is ready!')
+        resp = bytearray(31-8)
+        if self._sense_error == False:
+            resp[12] = 0xc5 # no error
+            resp[14] = 0x03
+            resp[18] = 0xb0
+            resp[19] = 0x50
+
+        send(IDER_SCSI_SENSE, resp, complete=True)
 
     def on_unhandled(self, dev, data, send):
         raise Exception('scsi', 'unhandled scsi opcode')
@@ -299,7 +306,6 @@ class SCSI():
 
         toread = length
         complete = False
-
 #        print(str(flag))
 #        print(data)
 
@@ -310,11 +316,11 @@ class SCSI():
             else:
                 complete = True
                 count = toread
-           
+
             resp = bytearray(34-8)
             resp[1]=count & 0xff
             resp[2]=(count >> 8) & 0xff
-            
+
             #resp[4]=0xb5
             resp[4]=0xb4
             resp[6]=0x02
@@ -323,7 +329,7 @@ class SCSI():
             resp[11]=0x58
             # todo: handle incomplete?
 
-            if complete == True:
+            if complete:
                 resp[12]=0x85
                 resp[14]=0x03
                 resp[18]=0xb0
@@ -413,10 +419,10 @@ class SCSI():
     def handle(self, dev, data, send):
         cdb = data[8:]
         opcode = cdb[0]
-      
-        print('scsi opcode is: ' + hex(opcode))
 
-        if dev[0] != DEV_TYPE_CD and dev[0] != 0x10:
+        print(f'scsi opcode is: {hex(opcode)}')
+
+        if dev[0] not in [DEV_TYPE_CD, 0x10]:
 #            print('scsi opcode on non-cd')
             self.on_nomedium(dev, data, send) # we only do cd/dvd right now
             return
@@ -469,14 +475,14 @@ class IderSession():
         value = d[4] << 8 | d[3]
         value = value << 8 | d[2]
         value = value << 8 | d[1]
-        print('type is: ' + str(dtype))
-        print('value is: ' + str(value)) 
+        print(f'type is: {str(dtype)}')
+        print(f'value is: {str(value)}') 
 
         if dtype == IDER_REGS_AVAIL:
             print('ider_regs_avail')
             if value & IDER_BIT_PRI_AVAIL:
                 print('bit pri_avail')
-        
+
         if dtype == IDER_REGS_TOGGLE:
             print('REGS_TOGGLE')
             if value == IDER_REGS_SUCCESS:

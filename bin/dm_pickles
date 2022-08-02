@@ -28,9 +28,9 @@ class duckyscript:
         self.sock = sock
         self.safe_wait = 0.0042 # empirically found to not suck in observed settings
         self.default_delay = self.safe_wait
-        
+
         # I specialize in bird law
-        
+
         self.op_lookup = {
             'ALT'           : self.do_alt,
             'APP'           : self.do_menu,
@@ -82,19 +82,19 @@ class duckyscript:
             self.eval_line(line)
    
     def eval_line(self, line):
-            chunks = line.split(' ')
-            op = chunks[0]
+        chunks = line.split(' ')
+        op = chunks[0]
 
-            if op == '':
-                return
-            
-            if op not in self.op_lookup:
-                print('op "{}" not found'.format(chunks[0]))
-                return
+        if op == '':
+            return
 
-            print('cur line: {}'.format(line))
-            self.op_lookup[chunks[0]](line)
-            self.last_line = line
+        if op not in self.op_lookup:
+            print(f'op "{chunks[0]}" not found')
+            return
+
+        print(f'cur line: {line}')
+        self.op_lookup[chunks[0]](line)
+        self.last_line = line
 
     def get_arg(self, line):
         return line.split(' ')[1].encode('utf-8') # first chunk is opcode
@@ -197,7 +197,7 @@ class duckyscript:
         self.pressb(b'\xff\x09')
 
     def do_repeat(self, line):
-        for i in range(0, int(self.get_arg(line))):
+        for _ in range(int(self.get_arg(line))):
             self.eval_line(self.last_line)
 
     def do_sleep(self, line):

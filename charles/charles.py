@@ -23,7 +23,7 @@ def create_redir_session(hostname, port, username, password, service):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setblocking(True)
     sock.connect((hostname, int(port)))
-    
+
     def send(data):
         sock.sendall(data)
 
@@ -55,24 +55,24 @@ def create_redir_session(hostname, port, username, password, service):
     data = b'\x13\x00\x00\x00\x04\x20\x00\x00\x00' + bytes([len(username)]) + username.encode() + b'\x00\x00'
     data += itobl(len(auth_target)) + auth_target + b'\x00\x00\x00\x00'
     send(data)
- 
+
     rv = recv()
-    
+
     # TODO (12_17_18-pancho) clean up offset arithmetic and pretty much all from here to return
     realm_len = int(rv[9])
     realm = rv[10:10+realm_len]
 
     nonce_len = int(rv[10+realm_len])
     nonce = rv[11+realm_len:11+realm_len+nonce_len] # eww, I got lazy with this one
-    
+
     cnonce = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
-        
-    p1 = username + ':' + realm.decode() + ':' + password
-    p2 = nonce.decode() + ':' + '00000002' + ':' + cnonce + ':' + 'auth' # not sure what the 00000002 thing is about
+
+    p1 = f'{username}:{realm.decode()}:{password}'
+    p2 = f'{nonce.decode()}:00000002:{cnonce}:auth'
     p3 = 'POST' + ':' + auth_target.decode()
-    cr = hex_md5(hex_md5(p1) + ':' + p2 + ':' + hex_md5(p3)) 
-    print('Challenge answer is: ' + cr) 
-    
+    cr = hex_md5(f'{hex_md5(p1)}:{p2}:{hex_md5(p3)}')
+    print(f'Challenge answer is: {cr}') 
+
     auth_data =  itobl(len(username))+ username.encode()
     auth_data += itobl(realm_len) + realm
     auth_data += itobl(nonce_len) + nonce
@@ -81,7 +81,7 @@ def create_redir_session(hostname, port, username, password, service):
     auth_data += b'\x08' + b'00000002'
     auth_data += itobl(len(cr)) + cr.encode()
     auth_data += b'\x04' + b'auth'
-    
+
     data = b'\x13\x00\x00\x00\x04'
     data += itobl(len(auth_data), 4)
     data += auth_data
